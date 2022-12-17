@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import AVFoundation
 
 class ViewController: UIViewController {
     
@@ -14,21 +15,27 @@ class ViewController: UIViewController {
     @IBOutlet weak var timeCountLable: UILabel!
     @IBOutlet weak var timeBar: UIProgressView!
     @IBOutlet weak var timeCountTest: UILabel!
+    var player: AVAudioPlayer?
     
-    let eggTimes = ["Soft":300 , "Medium":350 , "Hard": 720]
+    let eggTimes = ["Soft":3 , "Medium":5 , "Hard": 7]
     
     var timeCount = 0
-    var percnetCount = 0
-    var zeroCount = 0
+    var totalTime = 0
+    var secondsPassed = 0
     
     var timer = Timer()
     
     @IBAction func hardnessSelected(_ sender : UIButton) {
-        let hardness = sender.currentTitle
-        let hardnessTime = eggTimes[hardness!]
         
-        timeCount += Int(hardnessTime!)
-        percnetCount += Int(hardnessTime!)
+        timer.invalidate()
+        
+        let hardness = sender.currentTitle!
+        totalTime += eggTimes[hardness]!
+        
+        timeBar.progress = 0.0
+        secondsPassed = 0
+        timeCountTest.text = String(hardness)
+       
         
         timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(countTime), userInfo: nil, repeats: true)
       
@@ -36,22 +43,49 @@ class ViewController: UIViewController {
     }
     
     @objc func countTime() {
-        if timeCount > 0 {
-            timeCount -= 1
-            timeCountTest.text = String(timeCount)
-            if zeroCount <  percnetCount{
-                zeroCount += 1
-                timeBar.progress = Float(zeroCount) / Float(percnetCount)
-                print(timeBar.progress)
-            }
+        if secondsPassed < totalTime {
+            
+            
+            secondsPassed += 1
+            
+            let percentageProgress = Float(secondsPassed) / Float(totalTime)
+            
+            timeBar.progress = percentageProgress
+            
+            timeCountTest.text = String(percentageProgress)
             
             
         }else{
+            playSound()
             timer.invalidate()
             timeCountLable.text = "Done"
         }
         
 
+        func playSound() {
+            guard let url = Bundle.main.url(forResource: "alarm_sound", withExtension: "mp3") else { return }
+
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                try AVAudioSession.sharedInstance().setActive(true)
+
+                /* The following line is required for the player to work on iOS 11. Change the file type accordingly*/
+                player = try AVAudioPlayer(contentsOf: url, fileTypeHint: AVFileType.mp3.rawValue)
+
+                /* iOS 10 and earlier require the following line:
+                player = try AVAudioPlayer(contentsOf: url, fileTypeHint: AVFileTypeMPEGLayer3) */
+
+                guard let player = player else { return }
+
+                player.play()
+
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+        
+        
+        
         
     }
     
